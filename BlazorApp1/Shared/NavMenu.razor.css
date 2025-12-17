@@ -1,0 +1,57 @@
+/* Cleaned nav menu: non-white background and accessible link colors */
+.nav-menu {
+    display: flex;
+    gap: 0.8rem;
+    align-items: center;
+    background: var(--primary);
+    padding: 0.8rem 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(0,0,0,0.06);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    color: var(--surface);
+}
+
+.nav-item { display: flex; align-items: center; }
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 1rem;
+    background: transparent;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    color: rgba(255,255,255,0.95);
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.18s ease;
+    font-size: 0.95rem;
+}
+
+.nav-link .nav-icon { font-size: 1.05rem; }
+
+.nav-link:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.08);
+    color: var(--surface);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.nav-link.active {
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.14);
+    color: var(--surface);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.nav-icon { font-size: 1.2rem; }
+.nav-label { display: inline; }
+
+@media (max-width: 768px) {
+    .nav-menu { flex-wrap: wrap; gap: 0.5rem; padding: 0.6rem 0.8rem; }
+    .nav-link { padding: 0.5rem 0.8rem; font-size: 0.9rem; }
+    .nav-label { display: none; }
+}
+
+/* Remove framework deep selectors and duplicates to keep styles predictable */

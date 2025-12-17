@@ -1,0 +1,143 @@
+@page "/orders"
+@using BlazorApp1.Data
+@using Microsoft.EntityFrameworkCore
+@inject OrderingContext Db
+
+<h3>Beställningar</h3>
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="ShowAddForm">Skapa ny beställning</button>
+</div>
+
+@if (showAddForm)
+{
+    <div class="card mb-3 p-3">
+        <h5>Ny Beställning</h5>
+        <div class="mb-2">
+            <label>Kund:</label>
+            <select class="form-control" @bind="selectedCustomerId">
+                <option value="">--Välj kund--</option>
+                @foreach (var customer in customers)
+                {
+                    <option value="@customer.Id">@customer.Name</option>
+                }
+            </select>
+        </div>
+        <div class="mb-2">
+            <label>Produkt:</label>
+            <select class="form-control" @bind="selectedProductId">
+                <option value="">--Välj produkt--</option>
+                @foreach (var product in products)
+                {
+                    <option value="@product.Id">@product.Name (@product.Price.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("sv-SE")))</option>
+                }
+            </select>
+        </div>
+        <div class="mb-2">
+            <label>Antal:</label>
+            <input type="number" min="1" class="form-control" @bind="orderQuantity" />
+        </div>
+        <button class="btn btn-success" @onclick="CreateOrder">Skapa Beställning</button>
+        <button class="btn btn-secondary" @onclick="CancelAddForm">Avbryt</button>
+    </div>
+}
+
+<h5>Aktiva Beställningar</h5>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Order ID</th>
+            <th>Kund</th>
+            <th>Datum</th>
+            <th>Artiklar</th>
+            <th>Total</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var order in orders)
+        {
+            <tr>
+                <td>@order.Id</td>
+                <td>@order.Customer?.Name</td>
+                <td>@order.OrderDate.ToString("yyyy-MM-dd")</td>
+                <td>
+                    @foreach (var item in order.OrderItems)
+                    {
+                        <div>@item.Product?.Name x @item.Quantity</div>
+                    }
+                </td>
+                <td>@order.OrderItems.Sum(oi => oi.PriceAtTimeOfPurchase * oi.Quantity).ToString("C", System.Globalization.CultureInfo.GetCultureInfo("sv-SE"))</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private List<Order> orders = new();
+    private List<Customer> customers = new();
+    private List<Product> products = new();
+    private bool showAddForm = false;
+    private string selectedCustomerId = "";
+    private string selectedProductId = "";
+    private int orderQuantity = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        orders = await Db.Orders.Include(o => o.Customer).Include(o => o.OrderItems).ThenInclude(oi => oi.Product).ToListAsync();
+        customers = await Db.Customers.ToListAsync();
+        products = await Db.Products.ToListAsync();
+    }
+
+    private void ShowAddForm()
+    {
+        showAddForm = true;
+    }
+
+    private void CancelAddForm()
+    {
+        showAddForm = false;
+        selectedCustomerId = "";
+        selectedProductId = "";
+        orderQuantity = 1;
+    }
+
+    private async Task CreateOrder()
+    {
+        if (!int.TryParse(selectedCustomerId, out var custId) || !int.TryParse(selectedProductId, out var prodId))
+            return;
+
+        var product = await Db.Products.FindAsync(prodId);
+        if (product == null || product.Stock < orderQuantity)
+        {
+            // Could add error handling here
+            return;
+        }
+
+        var order = new Order
+        {
+            CustomerId = custId,
+            OrderDate = DateTime.Now
+        };
+
+        var orderItem = new OrderItem
+        {
+            ProductId = prodId,
+            Quantity = orderQuantity,
+            PriceAtTimeOfPurchase = product.Price
+        };
+
+        order.OrderItems.Add(orderItem);
+        product.Stock -= orderQuantity;
+
+        Db.Orders.Add(order);
+        await Db.SaveChangesAsync();
+
+        await LoadData();
+        CancelAddForm();
+    }
+}

@@ -1,0 +1,83 @@
+@page "/products"
+@using BlazorApp1.Data
+@using Microsoft.EntityFrameworkCore
+@inject OrderingContext Db
+
+<h3>Produkter</h3>
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="ShowAddForm">Lägg till ny produkt</button>
+</div>
+
+@if (showAddForm)
+{
+    <div class="card mb-3 p-3">
+        <h5>Ny Produkt</h5>
+        <div class="mb-2">
+            <label>Namn:</label>
+            <input type="text" class="form-control" @bind="newProduct.Name" />
+        </div>
+        <div class="mb-2">
+            <label>Pris:</label>
+            <input type="number" step="0.01" class="form-control" @bind="newProduct.Price" />
+        </div>
+        <div class="mb-2">
+            <label>Lager:</label>
+            <input type="number" class="form-control" @bind="newProduct.Stock" />
+        </div>
+        <button class="btn btn-success" @onclick="AddProduct">Spara</button>
+        <button class="btn btn-secondary" @onclick="CancelAddForm">Avbryt</button>
+    </div>
+}
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Namn</th>
+            <th>Pris</th>
+            <th>Lager</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var product in products)
+        {
+            <tr>
+                <td>@product.Id</td>
+                <td>@product.Name</td>
+                <td>@product.Price.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("sv-SE"))</td>
+                <td>@product.Stock</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private List<Product> products = new();
+    private Product newProduct = new();
+    private bool showAddForm = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        products = await Db.Products.ToListAsync();
+    }
+
+    private void ShowAddForm()
+    {
+        showAddForm = true;
+        newProduct = new Product();
+    }
+
+    private void CancelAddForm()
+    {
+        showAddForm = false;
+    }
+
+    private async Task AddProduct()
+    {
+        Db.Products.Add(newProduct);
+        await Db.SaveChangesAsync();
+        products = await Db.Products.ToListAsync();
+        showAddForm = false;
+    }
+}

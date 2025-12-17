@@ -1,0 +1,79 @@
+@page "/customers"
+@using BlazorApp1.Data
+@using Microsoft.EntityFrameworkCore
+@inject OrderingContext Db
+
+<h3>Kunder</h3>
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="ShowAddForm">Lägg till ny kund</button>
+</div>
+
+@if (showAddForm)
+{
+    <div class="card mb-3 p-3">
+        <h5>Ny Kund</h5>
+        <div class="mb-2">
+            <label>Namn:</label>
+            <input type="text" class="form-control" @bind="newCustomer.Name" />
+        </div>
+        <div class="mb-2">
+            <label>Email:</label>
+            <input type="email" class="form-control" @bind="newCustomer.Email" />
+        </div>
+        <button class="btn btn-success" @onclick="AddCustomer">Spara</button>
+        <button class="btn btn-secondary" @onclick="CancelAddForm">Avbryt</button>
+    </div>
+}
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Namn</th>
+            <th>Email</th>
+            <th>Beställningar</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var customer in customers)
+        {
+            <tr>
+                <td>@customer.Id</td>
+                <td>@customer.Name</td>
+                <td>@customer.Email</td>
+                <td>@customer.Orders.Count</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private List<Customer> customers = new();
+    private Customer newCustomer = new();
+    private bool showAddForm = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        customers = await Db.Customers.Include(c => c.Orders).ToListAsync();
+    }
+
+    private void ShowAddForm()
+    {
+        showAddForm = true;
+        newCustomer = new Customer();
+    }
+
+    private void CancelAddForm()
+    {
+        showAddForm = false;
+    }
+
+    private async Task AddCustomer()
+    {
+        Db.Customers.Add(newCustomer);
+        await Db.SaveChangesAsync();
+        customers = await Db.Customers.Include(c => c.Orders).ToListAsync();
+        showAddForm = false;
+    }
+}
