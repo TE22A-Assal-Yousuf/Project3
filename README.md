@@ -168,3 +168,5 @@ BlazorApp1/
 
 ---
 **Utveckling**: 2025
+
+file:///C:/Users/yousuf.assal/Downloads/diagram.svg
