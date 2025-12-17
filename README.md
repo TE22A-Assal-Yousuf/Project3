@@ -22,29 +22,75 @@ Ett förenklat e-handelsystem för att hantera kunder, produkter och beställnin
 
 ### Förutsättningar
 
-- Docker & Docker Compose installerad
-- eller Visual Studio / .NET 7 SDK
+- Docker & Docker Compose (Windows: Docker Desktop)
+- Eller: Visual Studio / .NET 7 SDK om du kör utan Docker
 
-### Kör med Docker
+### Rekommenderat: Kör med Docker (utveckling)
 
-```bash
+Följande kommando bygger bilder och startar tjänsterna enligt `docker-compose.yml`.
+
+PowerShell-exempel:
+
+```powershell
+# Starta i förgrunden (bra vid första körning)
 docker-compose up --build
+
+# Eller starta i bakgrunden (detta visar inte loggarna direkt)
+docker-compose up --build -d
 ```
 
-Applikationen blir tillgänglig på `http://localhost:5000`
+Applikationen exponeras på port `8000` i denna repo-konfiguration. Öppna i webbläsaren:
 
-### Kör lokalt (utan Docker)
+`http://localhost:8000`
 
-1. Installera SQL Server lokalt
-2. Uppdatera connection string i `appsettings.json`
-3. Kör migrations:
-   ```bash
-   dotnet ef database update
-   ```
-4. Starta appen:
-   ```bash
-   dotnet run
-   ```
+Vill du rensa volumes och börja om:
+
+```powershell
+docker-compose down --volumes
+docker-compose up --build -d
+```
+
+### Bygga om enskild tjänst
+
+Om du gör ändringar i `BlazorApp1` och vill bygga om containern:
+
+```powershell
+docker-compose build blazor
+docker-compose up -d
+```
+
+### Logs och felsökning
+
+Visa senaste loggarna för blazor-tjänsten:
+
+```powershell
+docker-compose logs blazor --tail=200
+```
+
+Visa SQL Server-loggar:
+
+```powershell
+docker-compose logs sql --tail=200
+```
+
+Vanliga problem
+- Om appen stänger anslutningen, kontrollera att Compose-miljöns connection string använder `Server=sql,1433` (hostnamn `sql` i compose-nätverket).
+- Program.cs försöker köra migrations på uppstart (`db.Database.Migrate()`), så databasen skapas/uppdateras automatiskt vid start — kontrollera loggar om migrationerna misslyckas.
+- Om du får SQL-login-fel, kontrollera `SA_PASSWORD` i `docker-compose.yml` och att containern är uppe.
+
+### Kör lokalt utan Docker
+
+1. Installera eller kör en SQL Server (lokalt eller fjärr).
+2. Uppdatera `BlazorApp1/appsettings.json` så att `DefaultConnection` pekar mot din SQL Server (t.ex. `Server=localhost,1433;Database=OrderingSystem;User Id=sa;Password=...;TrustServerCertificate=true;Encrypt=false`).
+3. Kör migrationer (valfritt — appen kör migreringar automatiskt om så är konfigurerat):
+
+```powershell
+cd BlazorApp1
+dotnet ef database update
+dotnet run
+```
+
+Appen startar på den port som Kestrel är konfigurerad för (standard i container: 80) men `dotnet run` kan exponera en annan port beroende på `launchSettings.json`.
 
 ## Databasstruktur
 
@@ -52,14 +98,14 @@ Applikationen blir tillgänglig på `http://localhost:5000`
 
 - **Customers**: Kundinformation (ID, Namn, Email)
 - **Products**: Produktkatalog (ID, Namn, Pris, Lager)
-- **Orders**: Beställningar (ID, KundID, Datum)
-- **OrderItems**: Beställningsrader - Kopplingstabell för Many-to-Many (ID, BeställningID, ProduktID, Kvantitet, PrisVidKöp)
+- **Orders**: Beställningar (ID, KundID, Datum, Total)
+- **OrderItems**: Beställningsrader (ID, OrderId, ProductId, Quantity, PriceAtTimeOfPurchase)
 
 ### Relationer
 
 - En Kund kan ha många Beställningar (1:N)
-- En Beställning kan ha många Produkter via OrderItems (Many:Many)
-- En Produkt kan finnas på många Beställningar via OrderItems (Many:Many)
+- En Beställning kan ha många OrderItems (1:N)
+- En Produkt kan förekomma i många OrderItems (1:N från Product till OrderItem)
 
 ## Sidor
 
@@ -81,14 +127,14 @@ Applikationen blir tillgänglig på `http://localhost:5000`
 
 ## SQL Credentials (Docker)
 
-- **Server**: sql,1433
-- **User**: sa
-- **Password**: Password123!
-- **Database**: OrderingSystem
+- **Server**: `sql,1433` (Compose service `sql`)
+- **User**: `sa`
+- **Password**: `Password123!` (sätt i `docker-compose.yml`)
+- **Database**: `OrderingSystem`
 
 ⚠️ Byt lösenord i production!
 
-## Filstruktur
+## Filstruktur (viktigaste delar)
 
 ```
 BlazorApp1/
@@ -99,7 +145,7 @@ BlazorApp1/
 │   ├── OrderItem.cs
 │   └── OrderingContext.cs
 ├── Migrations/
-│   └── InitialCreate
+│   └── 20251216000000_InitialCreate
 ├── Pages/
 │   ├── Customers.razor
 │   ├── Products.razor
@@ -115,10 +161,10 @@ BlazorApp1/
 
 ## Användning
 
-1. Gå till Kunder och lägg till nya kunder
-2. Gå till Produkter och lägg till eller se produkter
-3. Gå till Beställningar och skapa nya beställningar
-4. Systemet uppdaterar lagret automatiskt
+1. Starta Docker (Docker Desktop)
+2. Kör `docker-compose up --build -d`
+3. Öppna `http://localhost:8000`
+4. Lägg till kunder/produkter och skapa beställningar
 
 ---
 **Utveckling**: 2025
